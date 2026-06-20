@@ -1,0 +1,45 @@
+# focus_check — session config template
+#
+# Save your own copies in:  focus_check/sessions/
+# Run with:                 python analyze.py -c sessions/my_session.yaml
+#
+# All paths can be absolute (recommended) or relative to wherever you run
+# the script from.  On Windows use forward slashes or double backslashes.
+# Glob patterns are supported in the targets list.
+
+# ── Reference frame ──────────────────────────────────────────────────────────
+# A known-good FITS file from a session where you confirmed sharp focus.
+# This becomes the baseline all target frames are compared against.
+reference: "C:/AstroData/CygnusLoop/2026-06-13/Panel8/Panel 8_2026-06-13_02-05-30_OIII_5.00_300.00s_0001.fits"
+
+# ── Target frames ────────────────────────────────────────────────────────────
+# List every file you want to evaluate.
+# Glob patterns work — enclose in quotes.
+targets:
+  - "C:/AstroData/CygnusLoop/2026-06-20/Panel8/Panel 8_2026-06-20_*_OIII_*.fits"
+  # Add more files or patterns as needed:
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/*.fits"
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/specific_frame.fits"
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output:
+  # CSV output path — three options:
+  #
+  # 1. Bare filename → auto-saved to focus_check/results/
+  csv: "cygnus_loop_2026-06-20.csv"
+  #
+  # 2. Absolute path → saved exactly there
+  # csv: "C:/AstroData/reports/cygnus_loop_2026-06-20.csv"
+  #
+  # 3. Relative path with directory → relative to wherever you run the script
+  # csv: "../../my_reports/cygnus_loop_2026-06-20.csv"
+
+# ── Watch mode (optional) ────────────────────────────────────────────────────
+# Set watch_dir to a folder and run with --watch (or just this config) to
+# monitor for new subs in real time.  The script will auto-verdict each new
+# FITS file as it appears and print a summary table on Ctrl+C.
+#
+# watch_dir: "C:/AstroData/CygnusLoop/2026-06-20/Panel8/"
+#
+# CLI equivalent (overrides this setting):
+#   python analyze.py -c this_file.yaml -w "C:/AstroData/CygnusLoop/2026-06-20/Panel8/"

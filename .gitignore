@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Distribution / packaging
+*.egg-info/
+.installed.cfg
+
+# Testing
+.tox/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific: exclude large FITS/image data files
+*.fits
+*.fit
+*.fts
+*.fits.gz
+*.xisf
+*.cr2
+*.nef
+*.arw
+
+# Keep results and sessions YAML/CSV (they are small analysis outputs)
+# But ignore any raw data folders if added later
+data/raw/

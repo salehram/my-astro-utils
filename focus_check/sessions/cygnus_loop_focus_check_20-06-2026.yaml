@@ -1,0 +1,26 @@
+# focus_check — session config
+# Run with:  python analyze.py --config this_file.yaml
+#
+# All paths can be absolute (recommended) or relative to wherever you run
+# the script from.  On Windows use forward slashes or double backslashes.
+# Glob patterns are supported in the targets list.
+
+# ── Reference frame ──────────────────────────────────────────────────────────
+# A known-good FITS file from a session where you confirmed sharp focus.
+# This becomes the baseline all target frames are compared against.
+reference: "C:/Users/SalehRam/Desktop/AP/Cygnus Loop Mosaic/Panel 8/OIII/2026-06-12/LIGHT/Panel 8_2026-06-13_02-05-30_OIII_5.00_300.00s_0001.fits"
+
+# ── Target frames ────────────────────────────────────────────────────────────
+# List every file you want to evaluate.
+# Glob patterns work — enclose in quotes.
+targets:
+  - "C:/Users/SalehRam/Desktop/AP/Cygnus Loop mosaic - OIII/Panel 8/OIII/2026-06-19/LIGHT/*.fits"
+  # Add more files or patterns as needed:
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/*.fits"
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/specific_frame.fits"
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output:
+  # Uncomment the line below to also save a CSV alongside the console output:
+  # csv: "C:/AstroData/CygnusLoop/focus_check_2026-06-20.csv"
+  csv: "cygnus_loop_focus_check_20-06-2026.csv"
