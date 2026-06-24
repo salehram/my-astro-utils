@@ -8,6 +8,7 @@ Designed to run on-the-go from the command line — no PixInsight required.
 | Tool | Purpose |
 |------|---------|
 | [`focus_check`](focus_check/) | Compare FITS frames against a reference to evaluate focus quality (FWHM, HFR, eccentricity, SNR, star count, sky background) |
+| [`star_check`](star_check/) | Analyze frames for star roundness, trailing direction, sky gradient, field tilt, and satellite/plane trail detection |
 
 ## Setup
 

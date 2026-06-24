@@ -1,0 +1,45 @@
+# star_check — session config template
+#
+# Save your own copies in:  star_check/sessions/
+# Run with:                 python analyze.py -c my_session.yaml
+#
+# All paths can be absolute (recommended) or relative to wherever you run
+# the script from.  On Windows use forward slashes or double backslashes.
+# Glob patterns are supported in the targets list.
+
+# ── Reference frame (optional) ───────────────────────────────────────────────
+# When provided, star-count verdicts are expressed relative to this frame.
+# Omit this key entirely to use absolute eccentricity thresholds only.
+#
+# reference: "C:/AstroData/CygnusLoop/2026-06-13/Panel8/Panel 8_*_OIII_*_0001.fits"
+
+# ── Target frames ────────────────────────────────────────────────────────────
+# List every file you want to evaluate.
+# Glob patterns work — enclose in quotes on Windows.
+targets:
+  - "C:/AstroData/CygnusLoop/2026-06-20/Panel8/*.fits"
+  # Add more files or patterns as needed:
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/*.fits"
+  # - "C:/AstroData/CygnusLoop/2026-06-20/Panel9/specific_frame.fits"
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output:
+  # CSV output path — three options:
+  #
+  # 1. Bare filename → auto-saved to star_check/results/
+  csv: "cygnus_loop_2026-06-20_stars.csv"
+  #
+  # 2. Absolute path → saved exactly there
+  # csv: "C:/AstroData/reports/cygnus_loop_2026-06-20_stars.csv"
+  #
+  # 3. Relative path with directory → relative to cwd when you run the script
+  # csv: "../../my_reports/cygnus_loop_2026-06-20_stars.csv"
+
+# ── Watch mode (optional) ────────────────────────────────────────────────────
+# Set watch_dir to monitor a folder for new subs in real time.
+# Each new FITS file is auto-verdicted as it appears; Ctrl+C shows the summary.
+#
+# watch_dir: "C:/AstroData/CygnusLoop/2026-06-20/Panel8/"
+#
+# CLI equivalent (overrides this setting):
+#   python analyze.py -c this_file.yaml --watch "C:/AstroData/CygnusLoop/2026-06-20/Panel8/"

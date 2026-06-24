@@ -1,0 +1,18 @@
+# star_check — session config template
+#
+# Save your own copies in:  star_check/sessions/
+# Run with:                 python analyze.py -c my_session.yaml
+
+targets:
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 1/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 2/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 3/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 4/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 5/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 6/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 7/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 8/OIII/2026-06-22/LIGHT/*.fits"
+  - "D:/AP/Cygnus Loop mosaic - OIII/Panel 9/OIII/2026-06-22/LIGHT/*.fits"
+
+output:
+  csv: "22-6-2026-cygnus_loop_panel_7.csv"
