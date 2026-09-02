@@ -30,6 +30,11 @@ from rich.console import Console
 from metrics import analyze_frame
 from report import export_csv, print_report, print_watch_line
 
+try:
+    import argcomplete
+except ImportError:
+    argcomplete = None  # type: ignore[assignment]
+
 console = Console()
 
 # Directories relative to this script file (created on demand)
@@ -99,16 +104,14 @@ def _load_config(config_path: str) -> dict:
     return cfg or {}
 
 
-def _parse_config(cfg: dict) -> tuple[str, list[str], str | None, str | None]:
+def _parse_config(cfg: dict) -> tuple[str | None, list[str], str | None, str | None]:
     """
     Extract (reference_path, target_paths, csv_out, watch_dir) from a YAML config dict.
+    Reference is optional — returns None when not specified.
     """
-    reference = cfg.get("reference")
-    if not reference:
-        console.print("[red]Config must include a 'reference' key.[/red]")
-        sys.exit(1)
+    reference = cfg.get("reference") or None
 
-    targets_raw = cfg.get("targets", [])
+    targets_raw = cfg.get("targets") or []
     if isinstance(targets_raw, str):
         targets_raw = [targets_raw]
     targets = _expand_paths([str(t) for t in targets_raw])
@@ -118,7 +121,40 @@ def _parse_config(cfg: dict) -> tuple[str, list[str], str | None, str | None]:
 
     watch_dir = cfg.get("watch_dir") or None
 
-    return str(reference), targets, csv_out, watch_dir
+    return reference, targets, csv_out, watch_dir
+
+
+def _pick_session() -> str:
+    """Present a numbered list of sessions/ YAML files and return the chosen filename."""
+    _SESSIONS_DIR.mkdir(exist_ok=True)
+    sessions = sorted(_SESSIONS_DIR.glob("*.yaml")) + sorted(_SESSIONS_DIR.glob("*.yml"))
+    if not sessions:
+        console.print(
+            f"[yellow]No session files found in:[/yellow] {_SESSIONS_DIR.resolve()}\n"
+            f"[dim]Create a YAML config there or pass -r / -c on the command line.[/dim]"
+        )
+        sys.exit(1)
+
+    console.print("\n[bold cyan]Available sessions:[/bold cyan]")
+    for i, s in enumerate(sessions, 1):
+        console.print(f"  [bold cyan]{i:>2}[/bold cyan]  {s.name}")
+    console.print()
+
+    while True:
+        raw = console.input("[cyan]Pick a session (number): [/cyan]").strip()
+        if raw.isdigit() and 1 <= int(raw) <= len(sessions):
+            return sessions[int(raw) - 1].name
+        console.print("[red]Invalid choice — enter a number from the list.[/red]")
+
+
+def _sessions_completer(prefix, **kwargs):  # noqa: ANN001
+    """argcomplete completer — lists YAML files in sessions/."""
+    _SESSIONS_DIR.mkdir(exist_ok=True)
+    return [
+        f.name
+        for f in sorted(_SESSIONS_DIR.glob("*.yaml")) + sorted(_SESSIONS_DIR.glob("*.yml"))
+        if f.name.startswith(prefix)
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -149,17 +185,19 @@ examples:
 """,
     )
 
-    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group = parser.add_mutually_exclusive_group(required=False)
     input_group.add_argument(
         "--reference", "-r",
         metavar="FILE",
         help="Reference FITS file (your known-good focus frame).",
     )
-    input_group.add_argument(
+    config_arg = input_group.add_argument(
         "--config", "-c",
         metavar="FILE",
         help="Path to a YAML config file (reference + targets + output settings).",
     )
+    if argcomplete is not None:
+        config_arg.completer = _sessions_completer  # type: ignore[attr-defined]
 
     parser.add_argument(
         "--targets", "-t",
@@ -179,12 +217,20 @@ examples:
         "--watch", "-w",
         metavar="DIR",
         help=(
-            "Watch a directory for new FITS files and auto-verdict each one "
-            "as it arrives. Prints a full summary table on Ctrl+C."
+            "Watch a directory (and all subdirectories) for FITS files. "
+            "Existing files are processed immediately; new arrivals are "
+            "picked up automatically.  Ctrl+C prints a full summary table."
         ),
     )
 
+    if argcomplete is not None:
+        argcomplete.autocomplete(parser)
+
     args = parser.parse_args()
+
+    # ── Interactive session picker (no arguments supplied) ────────────────
+    if not args.config and not args.reference:
+        args.config = _pick_session()
 
     # --- Resolve inputs ---
     watch_dir: str | None = None
@@ -209,20 +255,24 @@ examples:
         return
 
     # --- Analyze reference ---
-    console.print(f"\n[cyan]Analyzing reference:[/cyan] {Path(reference_path).name}")
-    ref_result = analyze_frame(reference_path)
-    if ref_result.get("error"):
-        console.print(
-            f"[red]Failed to read reference file:[/red] {ref_result['error']}"
-        )
-        sys.exit(1)
-
-    _print_meta(ref_result)
+    ref_result: dict | None = None
+    if reference_path:
+        console.print(f"\n[cyan]Analyzing reference:[/cyan] {Path(reference_path).name}")
+        ref_result = analyze_frame(reference_path)
+        if ref_result.get("error"):
+            console.print(
+                f"[red]Failed to read reference file:[/red] {ref_result['error']}"
+            )
+            sys.exit(1)
+        _print_meta(ref_result)
 
     # --- Analyze targets ---
     if not target_paths:
         console.print("[yellow]No target files specified — nothing to compare.[/yellow]")
         sys.exit(0)
+
+    _SKIP_PREFIXES = ("BAD_", "FLAT_", "DARKFLAT_")
+    target_paths = [p for p in target_paths if not Path(p).name.startswith(_SKIP_PREFIXES)]
 
     console.print(f"\n[cyan]Analyzing {len(target_paths)} target frame(s)...[/cyan]")
     target_results: list[dict] = []
@@ -243,33 +293,33 @@ examples:
         export_csv(ref_result, target_results, _resolve_csv_path(csv_out))
 
 
-def _watch_mode(reference_path: str, watch_dir: str, csv_out: str | None) -> None:
+def _watch_mode(reference_path: str | None, watch_dir: str, csv_out: str | None) -> None:
     """
-    Poll watch_dir for new FITS files and auto-verdict each as it arrives.
-    Prints a compact one-liner per frame. On Ctrl+C, prints a full summary table.
+    Poll watch_dir (and all subdirectories) for FITS files.
+    Existing files are processed immediately on start; new arrivals are
+    picked up every poll cycle.  On Ctrl+C, prints a full summary table.
     """
     watch_path = Path(watch_dir)
     if not watch_path.is_dir():
         console.print(f"[red]Watch directory not found:[/red] {watch_dir}")
         sys.exit(1)
 
-    console.print(f"\n[cyan]Analyzing reference:[/cyan] {Path(reference_path).name}")
-    ref_result = analyze_frame(reference_path)
-    if ref_result.get("error"):
-        console.print(f"[red]Failed to read reference file:[/red] {ref_result['error']}")
-        sys.exit(1)
-    _print_meta(ref_result)
+    ref_result: dict | None = None
+    if reference_path:
+        console.print(f"\n[cyan]Analyzing reference:[/cyan] {Path(reference_path).name}")
+        ref_result = analyze_frame(reference_path)
+        if ref_result.get("error"):
+            console.print(f"[red]Failed to read reference file:[/red] {ref_result['error']}")
+            sys.exit(1)
+        _print_meta(ref_result)
 
     _FITS_PATTERNS = ("*.fits", "*.fit", "*.FITS", "*.FIT")
     seen: set[str] = set()
-    for pattern in _FITS_PATTERNS:
-        for f in watch_path.glob(pattern):
-            seen.add(str(f))
 
-    console.print(f"\n[cyan]Watching:[/cyan] {watch_path.resolve()}")
+    console.print(f"\n[cyan]Watching (recursive):[/cyan] {watch_path.resolve()}")
     console.print(
-        f"[dim]{len(seen)} existing file(s) pre-loaded — "
-        f"waiting for new subs... (Ctrl+C for summary)[/dim]\n"
+        "[dim]Processing all existing files first, then watching for new ones... "
+        "(Ctrl+C for summary)[/dim]\n"
     )
 
     results: list[dict] = []
@@ -277,7 +327,7 @@ def _watch_mode(reference_path: str, watch_dir: str, csv_out: str | None) -> Non
         while True:
             current: set[str] = set()
             for pattern in _FITS_PATTERNS:
-                current.update(str(f) for f in watch_path.glob(pattern))
+                current.update(str(f) for f in watch_path.rglob(pattern))
 
             new_files = sorted(current - seen)
             for filepath in new_files:
@@ -294,6 +344,11 @@ def _watch_mode(reference_path: str, watch_dir: str, csv_out: str | None) -> Non
                         continue
                 except OSError:
                     continue  # file vanished — leave it in seen, skip permanently
+
+                if p.name.startswith(("BAD_", "FLAT_", "DARKFLAT_")):
+                    console.print(f"[dim]Skipped (calibration/bad frame): {p.name}[/dim]")
+                    continue
+
                 result = analyze_frame(filepath)
                 results.append(result)
                 print_watch_line(result, ref_result)

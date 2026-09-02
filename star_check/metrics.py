@@ -38,7 +38,8 @@ from photutils.detection import DAOStarFinder
 # Half-size of the star cutout for Gaussian fitting (pixels either side of centroid)
 _CUTOUT_HALF: int = 15
 
-# Maximum stars used for morphology calculations
+# Maximum stars passed to per-star metric calculations (keeps runtime predictable).
+# Detection itself is uncapped so star_count reflects the true field population.
 _MAX_STARS: int = 200
 
 
@@ -162,11 +163,12 @@ def detect_stars(
     daofind = DAOStarFinder(
         fwhm=4.0,
         threshold=threshold_sigma * sky_rms,
-        n_brightest=_MAX_STARS,
     )
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         sources = daofind(data_sub)
+    if sources is not None and len(sources) > 0:
+        sources = sources[np.argsort(np.asarray(sources["peak"]))[::-1]]
     return sources
 
 
@@ -420,9 +422,10 @@ def analyze_frame(path: str | Path) -> dict:
         bkg_array, sky_median, sky_rms = estimate_background(data)
         sources    = detect_stars(data, bkg_array, sky_rms)
         star_count = len(sources) if sources is not None else 0
+        sources_metrics = sources[:_MAX_STARS] if sources is not None else sources
 
         ecc, elong, angle, consistency, center_ecc, edge_ecc, field_delta = \
-            measure_star_morphology(data, bkg_array, sources, data.shape)
+            measure_star_morphology(data, bkg_array, sources_metrics, data.shape)
 
         sky_gradient = measure_sky_gradient(bkg_array)
         snr          = measure_snr(sources, sky_rms)

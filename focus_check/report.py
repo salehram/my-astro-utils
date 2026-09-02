@@ -124,19 +124,20 @@ def _verdict(fwhm: float, ref_fwhm: float) -> tuple[str, str]:
 # Console table
 # ---------------------------------------------------------------------------
 
-def print_report(reference: dict, targets: list[dict]) -> None:
+def print_report(reference: dict | None, targets: list[dict]) -> None:
     """Print a rich-formatted comparison table to stdout."""
-    ref_fwhm        = reference.get("fwhm_px",      float("nan"))
-    ref_fwhm_arcsec = reference.get("fwhm_arcsec",  float("nan"))
-    ref_hfr         = reference.get("hfr_px",        float("nan"))
-    ref_ecc         = reference.get("eccentricity",  float("nan"))
-    ref_stars       = reference.get("star_count",    0)
-    ref_sky         = reference.get("sky_adu",       float("nan"))
-    ref_snr         = reference.get("snr",           float("nan"))
+    _ref = reference or {}
+    ref_fwhm        = _ref.get("fwhm_px",      float("nan"))
+    ref_fwhm_arcsec = _ref.get("fwhm_arcsec",  float("nan"))
+    ref_hfr         = _ref.get("hfr_px",        float("nan"))
+    ref_ecc         = _ref.get("eccentricity",  float("nan"))
+    ref_stars       = _ref.get("star_count",    0)
+    ref_sky         = _ref.get("sky_adu",       float("nan"))
+    ref_snr         = _ref.get("snr",           float("nan"))
 
     # Show arcsec alongside pixels when plate scale headers were present
     has_arcsec = (
-        reference.get("plate_scale") is not None
+        _ref.get("plate_scale") is not None
         and not _is_nan(ref_fwhm_arcsec)
     )
 
@@ -165,17 +166,18 @@ def print_report(reference: dict, targets: list[dict]) -> None:
     table.add_column("Verdict",   justify="center")
 
     # Reference row (always blue, no verdict delta)
-    table.add_row(
-        f"[bold blue]REF[/bold blue]  {reference.get('filename', '')}",
-        _fwhm_cell(ref_fwhm, ref_fwhm_arcsec),
-        "—",
-        _fmt(ref_hfr),
-        _fmt(ref_ecc, 3),
-        str(ref_stars),
-        _fmt(ref_sky, 1),
-        _fmt(ref_snr, 1),
-        "[bold blue]REFERENCE[/bold blue]",
-    )
+    if reference:
+        table.add_row(
+            f"[bold blue]REF[/bold blue]  {reference.get('filename', '')}",
+            _fwhm_cell(ref_fwhm, ref_fwhm_arcsec),
+            "—",
+            _fmt(ref_hfr),
+            _fmt(ref_ecc, 3),
+            str(ref_stars),
+            _fmt(ref_sky, 1),
+            _fmt(ref_snr, 1),
+            "[bold blue]REFERENCE[/bold blue]",
+        )
 
     for frame in targets:
         if frame.get("error"):
@@ -229,12 +231,12 @@ def print_report(reference: dict, targets: list[dict]) -> None:
 # Watch-mode one-liner
 # ---------------------------------------------------------------------------
 
-def print_watch_line(frame: dict, reference: dict) -> None:
+def print_watch_line(frame: dict, reference: dict | None) -> None:
     """Compact single-line verdict for --watch mode."""
     from datetime import datetime
     ts       = datetime.now().strftime("%H:%M:%S")
     name     = frame.get("filename", "")
-    ref_fwhm = reference.get("fwhm_px", float("nan"))
+    ref_fwhm = reference.get("fwhm_px", float("nan")) if reference else float("nan")
 
     if frame.get("error"):
         console.print(
@@ -332,15 +334,16 @@ def _csv_row(frame: dict, role: str, ref_fwhm: float) -> dict:
     }
 
 
-def export_csv(reference: dict, targets: list[dict], output_path: str | Path) -> None:
+def export_csv(reference: dict | None, targets: list[dict], output_path: str | Path) -> None:
     """Write all results to a CSV file."""
     output_path = Path(output_path)
-    ref_fwhm = reference.get("fwhm_px", float("nan"))
+    ref_fwhm = reference.get("fwhm_px", float("nan")) if reference else float("nan")
 
     with output_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=_CSV_FIELDS)
         writer.writeheader()
-        writer.writerow(_csv_row(reference, "reference", ref_fwhm))
+        if reference:
+            writer.writerow(_csv_row(reference, "reference", ref_fwhm))
         for frame in targets:
             writer.writerow(_csv_row(frame, "target", ref_fwhm))
 
