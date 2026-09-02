@@ -1,0 +1,70 @@
+# astro_utils — master session config template
+#
+# Copy this file into:      sessions/   (next to astro_utils.py)
+# Run with:                 python astro_utils.py -c my_night.yaml
+#
+# The sessions/ folder is git-ignored, so your own configs stay local.
+#
+# This file is for the LAUNCHER.  It is a different thing from the per-workflow
+# session files in focus_check/sessions/ and star_check/sessions/ — it does not
+# contain reference/targets/output, it just says which workflows to run and what
+# to pass them.
+#
+# List available workflow names with:  python astro_utils.py --list
+
+
+# ── Shape A — a single workflow ──────────────────────────────────────────────
+# 'config' is shorthand for passing -c to that workflow.  The filename is
+# resolved by the workflow itself, so it must exist in that workflow's own
+# sessions/ folder (e.g. star_check/sessions/stars_2026-06-20.yaml).
+#
+workflow: analyze_stars
+config: "stars_2026-06-20.yaml"
+#
+# Use 'args' instead when you want full control.  It is forwarded verbatim,
+# exactly as if typed after the workflow name on the command line:
+#
+# args: ["-r", "C:/AstroData/REF.fits", "-t", "C:/AstroData/2026-06-20/*.fits"]
+#
+# 'config' and 'args' are mutually exclusive.
+
+
+# ── Shape B — every workflow, same arguments ─────────────────────────────────
+# Uncomment to run all discovered workflows against the same frames.
+# The args below are forwarded to each of them.
+#
+# workflow: all
+# args: ["-t", "C:/AstroData/CygnusLoop/2026-06-20/Panel8/*.fits"]
+
+
+# ── Shape C — explicit list, per-workflow arguments ──────────────────────────
+# The most useful form for a real night: each workflow gets its own session file.
+# Workflows run in this order.
+#
+# workflows:
+#   - name: analyze_focus
+#     config: "focus_2026-06-20.yaml"
+#
+#   - name: analyze_stars
+#     args: ["-c", "stars_2026-06-20.yaml", "--csv", "stars_run.csv"]
+#
+#   - name: some_future_tool
+#     enabled: false          # keep it listed but skip it for now
+
+
+# ── Watch mode ───────────────────────────────────────────────────────────────
+# Watch mode (-w) runs until Ctrl+C, so it blocks anything queued behind it.
+# The launcher refuses it when more than one workflow is queued.  Set this to
+# true to override (equivalent to passing --allow-watch), after which Ctrl+C
+# moves on to the next workflow instead of aborting the run.
+#
+# Note: a 'watch_dir:' set inside a workflow's OWN session file cannot be seen
+# by the launcher, so it will not be caught by this guard.
+#
+# allow_watch: false
+
+
+# ── Command-line overrides ───────────────────────────────────────────────────
+# Trailing CLI args are appended after whatever this file supplies, and win:
+#
+#   python astro_utils.py -c my_night.yaml --csv override.csv

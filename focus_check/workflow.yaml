@@ -1,0 +1,8 @@
+# Launcher metadata — read by ../astro_utils.py only.
+# analyze.py never reads this file.
+name: analyze_focus
+aliases: [focus_check, focus]
+description: Compare frames against a reference to evaluate focus quality (FWHM, HFR, SNR).
+entry: analyze.py
+order: 10
+enabled: true

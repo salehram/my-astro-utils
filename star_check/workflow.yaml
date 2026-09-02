@@ -1,0 +1,8 @@
+# Launcher metadata — read by ../astro_utils.py only.
+# analyze.py never reads this file.
+name: analyze_stars
+aliases: [star_check, stars]
+description: Star roundness, trailing direction, sky gradient, field tilt, and trail detection.
+entry: analyze.py
+order: 20
+enabled: true
